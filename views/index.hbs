@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset='utf-8'>
+	<title>Scioly Strike Tracker</title>
+	<link rel="stylesheet" href="https://unpkg.com/chota@latest">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <script src="client.js"></script>
+  
+	<div class="container">
+		<div class="row">
+			<div class="col">
+				<h1>Science Olympiad Strike Tracker</h1>
+			</div>
+		</div>
+		
+		<div class="row">
+			<div class="col col-12">
+				<h2>Current Class Action Polls</h2>
+			</div>
+			{{#each polls }}
+			{{#if (not (contains votes ip))}}
+			<div class="col col-6">
+				<div class="card">
+					<header>
+						<h4>{{ name }} - {{ expForm total }} Strikes</h4>
+					</header>
+					<p>Requested by {{ requestor }}</p>
+					<p>Reason: {{ cause }}</p>
+					<p>{{ length votes }}/8 votes recieved, expires in {{ timetill deadline }}</p>
+					<footer class="is-right">
+						<form  action="/vote/{{ id }}" method="post">
+							<input id="voter" name="voter" type="text" placeholder="ID Number">
+							<button type="submit">Vote Yes</button>
+						</form>
+					</footer>
+				</div>
+			</div>
+			{{/if}}
+			{{/each}}
+		</div>
+		
+		<div class="row">
+			<div class="col col-12">
+				<h2>Current Strike Leaders</h2>
+			</div>
+      {{#each strikes}}
+			  <div class="col col-4">
+				  <p>{{ name }} - {{ expForm number }}</p>
+			  </div>
+      {{/each}}
+		</div>
+		
+		<div class="row">
+			<div class="col">
+				<h2>File a Captain's Strike</h2>
+				<form  action="/captain/" method="post">
+					<fieldset>
+						<p>
+							<label for="target">Target</label>
+							<select id="target" name="target" onchange='captainOther(this.value);'> 
+                {{#each strikes}}
+                  <option value="{{ name }}">{{ name }}</option>
+                {{/each}}
+                <option value="other">Other</option>
+              </select>
+						</p>
+            
+            <p id="other-target">
+							<label for="other">Other Target</label>
+							<input id="other" name="other" type="text">
+						</p>
+						
+						<p>
+							<label for="cause">Reason</label>
+							<input id="cause" name="cause" type="text">
+						</p>
+						
+						<div class="row">
+							<div class="col">
+								<label for="number">Number</label>
+								<input id="number" name="number" type="number" value="1">
+							</div>
+							
+							<div class="col">
+								<label for="power">⋅10^</label>
+								<input id="power" name="power" type="number" value="0">
+							</div>
+						</div>		
+						
+						<p>
+							<label for="password">Password</label>
+							<input id="password" name="password" type="password">
+						</p>
+
+						<p>
+							<button type="submit">Submit</button>
+						</p>
+					</fieldset>
+				</form>
+			</div>
+			
+			<div class="col">
+				<h2>File a Class Action Strike</h2>
+				<form  action="/class/" method="post">
+					<fieldset>
+						<p>
+							<label for="target-2">Target</label>
+							<select id="target-2" name="target" onchange='classOther(this.value);'> 
+                {{#each strikes}}
+                  <option value="{{ name }}">{{ name }}</option>
+                {{/each}}
+                <option value="other">Other</option>
+              </select>
+						</p>
+            
+            <p id="other-target-2">
+							<label for="other-2">Other Target</label>
+							<input id="other-2" name="other" type="text">
+						</p>
+						
+						<p>
+							<label for="cause-2">Reason</label>
+							<input id="cause-2" type="text" name="cause">
+						</p>
+						
+						<div class="row">
+							<div class="col">
+								<label for="number-2">Number</label>
+								<input id="number-2" type="number" name="number" value="1">
+							</div>
+							
+							<div class="col">
+								<label for="power-2">⋅10^</label>
+								<input id="power-2" type="number" name="power" value="0">
+							</div>
+						</div>		
+						
+						<p>
+							<label for="submittor-2">Requested By</label>
+							<input id="submittor-2" type="text" name="requestor">
+						</p>
+
+						<p>
+							<button type="submit">Submit</button>
+						</p>
+					</fieldset>
+				</form>
+			</div>
+		</div>
+
+	</div>
+</body>
