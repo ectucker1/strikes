@@ -2,6 +2,7 @@
 // where your node app starts
 
 // init project
+require('dotenv').config();
 var _ = require('lodash');
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -9,12 +10,14 @@ var Big = require('big.js');
 var app = express();
 var form = require('express-form'),
     field = form.field;
+var session = require('express-session');
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // we've started you off with Express, 
 // but feel free to use whatever libs or frameworks you'd like through `package.json`.
 
 // http://expressjs.com/en/starter/static-files.html
+app.use(session({ secret: process.env.SECRET }));
 app.use(express.static('public'));
 
 var hbs = require('hbs');
@@ -34,7 +37,6 @@ hbs.registerHelper('timetill', function(date) {
 	} else {
 		parsedDate = date;
 	}
-	console.log(parsedDate);
 	var millis = parsedDate - new Date();
 	if(millis > 60 * 60 * 1000) {
 		return Math.floor(millis / 1000 / 60 / 60) + ' hours';
@@ -43,7 +45,6 @@ hbs.registerHelper('timetill', function(date) {
 	}
 });
 hbs.registerHelper('contains', function (list, item) {
-	console.log(item);
 	return list.includes(item);
 });
 hbs.registerHelper('not', bool => !bool);
@@ -54,7 +55,7 @@ var low = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
  
 const adapter = new FileSync('./.data/testdb.json', {
-	defaultValue: {},
+	defaultValue: {voters: [], strikes: [], polls: []},
 	serialize: (db) => JSON.stringify(db),
 	deserialize: (string) => JSON.parse(string, function (k, v) {
 		var bign;
@@ -73,17 +74,18 @@ db._.mixin({
     }
 }); 
 
-db.defaults({ polls: [] })
+db.defaults({voters: [], strikes: [], polls: []})
   .write();
                                                   
 // http://expressjs.com/en/starter/basic-routing.html
 app.get("/", function (req, res) {
-	console.log(req.ip);
+	console.log(req.session.error);
   res.render('index', {
 	  strikes: db.get('strikes').sortWith((a, b) => new Big(a.number).cmp(new Big(b.number))).reverse().value(),
 	  polls: db.get('polls').sortBy(['deadline']).value(),
-	  ip: req.ip
+	  error: 'error' in req.session ? req.session.error : false 
 	  })
+  req.session.error = false;
 });
 
 app.post('/captain', 
@@ -98,7 +100,7 @@ app.post('/captain',
 	function (req, res) {
 		var form = req.form;
 		if (!form.isValid) {
-			console.log(form.errors);
+			req.session.error = form.errors.toString();
 		} else if(form.password === process.env.ADMINPASS) { //Replace with process.env
 			if(form.target === 'other') {
 				addStrike(form.other, form.number, form.power);
@@ -106,7 +108,7 @@ app.post('/captain',
 				addStrike(form.target, form.number, form.power);
 			}
 		} else {
-			console.log("Password incorrect");
+			req.session.error = "Incorrect password.";
 		}
 		res.redirect('/');
 	}
@@ -124,7 +126,7 @@ app.post('/class',
 	function (req, res) {
 		var form = req.form;
 		if (!form.isValid) {
-			console.log(form.errors);
+			req.session.error = form.errors.toString();
 		} else {
 			if(form.target === 'other') {
 				addPoll(form.other, form.cause, form.requestor, form.number, form.power);
@@ -142,13 +144,11 @@ app.post('/vote/:id',
 		field("id").trim().required()
 	),
 	function (req, res) {
-		console.log(req.params.id);
 		var form = req.form;
 		if (!form.isValid) {
-			console.log(form.errors);
+			req.session.error = form.errors.toString();
 		} else {
 			var poll = db.get('polls').find({ id: req.params.id });
-			console.log(poll.get('votes').value());
 			if(!poll.get('votes').value().includes(form.voter) && db.get('voters').value().includes(form.voter)) {
 				poll.get('votes').push(form.voter).write();
 				if(poll.get('votes').value().length >= 8) {
@@ -156,6 +156,10 @@ app.post('/vote/:id',
 					addStrike(pollVal.name, pollVal.total, 0);
 					db.get('polls').remove({ id: req.params.id }).write();
 				}
+			} else if(db.get('voters').value().includes(form.voter)) {
+				req.session.error = "Already voted.";
+			} else {
+				req.session.error = "Invalid voting id. Ask Ethan if you don't have one.";
 			}
 		}
 		res.redirect('/');
